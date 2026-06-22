@@ -7,6 +7,37 @@ usage() {
   exit 1
 }
 
+fetch_aoc_input() {
+  local year="$1"
+  local day="$2"
+  local outfile="$3"
+
+  local session="${AOC_SESSION:-}"
+  if [[ -z "$session" && -f ".aoc_session" ]]; then
+    session="$(tr -d '[:space:]' < .aoc_session)"
+  fi
+
+  if [[ -z "$session" ]]; then
+    echo "Warning: set AOC_SESSION or create .aoc_session to fetch puzzle input" >&2
+    return 0
+  fi
+
+  local url="https://adventofcode.com/${year}/day/${day}/input"
+  if ! curl -sf -H "Cookie: session=${session}" "$url" -o "$outfile"; then
+    echo "Error: failed to fetch input from ${url}" >&2
+    rm -f "$outfile"
+    return 1
+  fi
+
+  if grep -q "Please log in to get your puzzle input" "$outfile"; then
+    echo "Error: invalid session cookie; got login page instead of puzzle input" >&2
+    rm -f "$outfile"
+    return 1
+  fi
+
+  echo "Fetched puzzle input to ${outfile}"
+}
+
 if [[ $# -ne 2 ]]; then
   usage
 fi
@@ -32,7 +63,7 @@ if [[ -e "$dir" ]]; then
 fi
 
 mkdir "$dir"
-touch "$dir/sample.txt" "$dir/input.txt"
+touch "$dir/sample.txt"
 
 cat > "$dir/main.go" <<EOF
 package main
@@ -55,5 +86,7 @@ func main() {
 	_ = scanner
 }
 EOF
+
+fetch_aoc_input "$year" "$day" "$dir/input.txt" || touch "$dir/input.txt"
 
 echo "Created $dir/ with main.go, sample.txt, and input.txt"
