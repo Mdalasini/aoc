@@ -98,7 +98,7 @@ func main() {
 	}
 
 	if scanner.Err() != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, scanner.Err())
 		os.Exit(1)
 	}
 
